@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Socket.io Chat</title>
+    <link href="./style.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>DC</h1>
+      <p>Your Nickname: <span id="random-animal-name"></span></p>
+      <div class="rooms">
+        <div class="room" id="room1">
+          <h2>Room 1</h2>
+          <div class="button-container">
+            <button onclick="joinRoom('room1')">Join</button>
+            <button onclick="exitRoom('room1')">Exit</button>
+          </div>
+          <div class="users" id="room1Users"></div>
+          <div class="chat-container" id="room1-chat-container">
+            <ul class="chat-list" id="room1-chat-list"></ul>
+          </div>
+
+          <div class="chat-input">
+            <input
+              type="text"
+              id="room1-messageInput"
+              placeholder="Type a message..."
+            />
+            <input type="file" id="room1-imageInput" accept="image/*" />
+            <button onclick="sendMessageWithImage('room1')">Send</button>
+          </div>
+        </div>
+        <div class="room" id="room2">
+          <h2>Room 2</h2>
+          <div class="button-container">
+            <button onclick="joinRoom('room2')">Join</button>
+            <button onclick="exitRoom('room2')">Exit</button>
+          </div>
+          <div class="users" id="room2Users"></div>
+          <div class="chat-container" id="room2-chat-container">
+            <ul class="chat-list" id="room2-chat-list"></ul>
+          </div>
+
+          <div class="chat-input">
+            <input
+              type="text"
+              id="room2-messageInput"
+              placeholder="Type a message..."
+            />
+            <input type="file" id="room2-imageInput" accept="image/*" />
+            <button onclick="sendMessageWithImage('room2')">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.js"></script>
+    <script>
+      const socket = io('http://10.80.163.166:8080');
+
+      // const animalNames = [
+      //   '한남',
+      //   '중남',
+      //   '일남',
+      //   '백승하',
+      //   '문정환',
+      //   '이재명',
+      //   '조수민',
+      //   '최수원',
+      //   '유지민',
+      //   '장범준',
+      //   '박상현',
+      // ];
+
+      // const randomAnimalName =
+      //   animalNames[Math.floor(Math.random() * animalNames.length)] +
+      //   Math.floor(Math.random() * 100).toString();
+      const nick = prompt('닉네임을 입력해주십시오.');
+      console.log(nick);
+      document.getElementById('random-animal-name').innerHTML = nick;
+
+      socket.emit('setUserNick', nick);
+
+      const roomUsers = {
+        room1: document.getElementById('room1Users'),
+        room2: document.getElementById('room2Users'),
+      };
+      const roomChatList = {
+        room1: document.getElementById('room1-chat-list'),
+        room2: document.getElementById('room2-chat-list'),
+      };
+      const roomChatContainer = {
+        room1: document.getElementById('room1-chat-container'),
+        room2: document.getElementById('room2-chat-container'),
+      };
+      const roomMessageInput = {
+        room1: document.getElementById('room1-messageInput'),
+        room2: document.getElementById('room2-messageInput'),
+      };
+      const imageInputRoom1 = document.getElementById('room1-imageInput');
+      const imageInputRoom2 = document.getElementById('room2-imageInput');
+
+      function joinRoom(room) {
+        socket.emit('join', room);
+      }
+
+      function exitRoom(room) {
+        if (!room) return;
+
+        roomUsers[room].innerHTML = '';
+        roomChatList[room].innerHTML = '';
+        socket.emit('exit', room);
+      }
+
+      function sendMessageWithImage(room) {
+        const messageInput =
+          room === 'room1' ? roomMessageInput.room1 : roomMessageInput.room2;
+        const fileInput = room === 'room1' ? imageInputRoom1 : imageInputRoom2;
+
+        const message = messageInput.value;
+        const file = fileInput.files[0];
+
+        if (message.trim() !== '' || file) {
+          const reader = new FileReader();
+
+          reader.onload = (e) => {
+            const imageData = e.target.result;
+            socket.emit('uploadImage', { message, image: imageData, room });
+            messageInput.value = '';
+            fileInput.value = ''; // 파일 선택 후 초기화
+          };
+
+          if (file) {
+            reader.readAsDataURL(file);
+          } else {
+            // 파일이 선택되지 않은 경우
+            reader.readAsDataURL(new Blob()); // 빈 Blob을 이용하여 onload 이벤트를 발생시킴
+          }
+        }
+      }
+
+      socket.on('userList', ({ room, userList }) => {
+        if (!room) return;
+
+        const usersElement = roomUsers[room];
+        usersElement.innerHTML = '';
+
+        userList.forEach((userId) => {
+          const p = document.createElement('p');
+          p.textContent = userId;
+          usersElement.appendChild(p);
+        });
+      });
+
+      socket.on('userJoined', ({ userId, room }) => {
+        const message = `${userId} joined the room.`;
+        appendMessage(room, message);
+      });
+
+      socket.on('userLeft', ({ userId, room }) => {
+        const message = `${userId} left the room.`;
+        appendMessage(room, message);
+      });
+
+      socket.on('uploadImage', ({ userId, image, message, room }) => {
+        appendMessage(room, `${userId} : ${message}`, image);
+      });
+
+      function appendMessage(room, message, image) {
+        const chatList = roomChatList[room];
+        const li = document.createElement('li');
+        li.className = 'chat-item';
+        const p = document.createElement('p');
+        p.textContent = message;
+        li.appendChild(p);
+
+        if (image) {
+          const img = document.createElement('img');
+          img.src = image;
+          li.appendChild(img);
+        }
+
+        chatList.appendChild(li);
+
+        roomChatContainer[room].scrollTop =
+          roomChatContainer[room].scrollHeight;
+      }
+
+      roomMessageInput.room1.addEventListener('keyup', function (event) {
+        if (event.key === 'Enter') {
+          sendMessageWithImage('room1');
+        }
+      });
+
+      roomMessageInput.room2.addEventListener('keyup', function (event) {
+        if (event.key === 'Enter') {
+          sendMessageWithImage('room2');
+        }
+      });
+    </script>
+  </body>
+</html>

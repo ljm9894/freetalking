@@ -8,11 +8,10 @@ import {
 import { Server, Socket } from 'socket.io';
 
 @WebSocketGateway({
-  cors : {
-    origin : ['http://localhost:5500'],
-    credentials : true,
+  cors: {
+    origin: ['http://10.80.163.166:5500'],
+    credentials: true,
   },
-
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -115,14 +114,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .to(room)
       .emit('userList', { room, userList: this.roomUsers[room] });
   }
-  @SubscribeMessage('chatMessage')
-  handleChatMessage(
+  @SubscribeMessage('uploadImage')
+  handleSendMessageWithImage(
     client: Socket,
-    data: { message: string; room: string },
+    data: { message: string; image: string; room: string },
   ): void {
-    this.server.to(data.room).emit('chatMessage', {
+    console.log('message' + data.message);
+    console.log('image' + data.image);
+    this.server.to(data.room).emit('messageWithImage', {
       userId: this.clientNickname[client.id],
       message: data.message,
+      image: data.image,
       room: data.room,
     });
   }
