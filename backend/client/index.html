@@ -8,7 +8,7 @@
   </head>
   <body>
     <div class="container">
-      <h1>DC</h1>
+      <h1>FreeTalk</h1>
       <p>Your Nickname: <span id="random-animal-name"></span></p>
       <div class="rooms">
         <div class="room" id="room1">
@@ -58,25 +58,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.js"></script>
     <script>
-      const socket = io('http://10.80.163.166:8080');
+      const socket = io('http://localhost:8080');
 
-      // const animalNames = [
-      //   '한남',
-      //   '중남',
-      //   '일남',
-      //   '백승하',
-      //   '문정환',
-      //   '이재명',
-      //   '조수민',
-      //   '최수원',
-      //   '유지민',
-      //   '장범준',
-      //   '박상현',
-      // ];
-
-      // const randomAnimalName =
-      //   animalNames[Math.floor(Math.random() * animalNames.length)] +
-      //   Math.floor(Math.random() * 100).toString();
       const nick = prompt('닉네임을 입력해주십시오.');
       console.log(nick);
       document.getElementById('random-animal-name').innerHTML = nick;
